@@ -1,0 +1,62 @@
+# ──── Python Build & Distribution ────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ──── Virtual Environments ────
+.venv
+venv/
+ENV/
+env/
+.env.local
+
+# ──── Environment Variables (sensitive) ────
+.env
+.env.*.local
+
+# ──── IDE & Editor ────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ──── Testing & Coverage ────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# ──── Project-Specific ────
+# Generated OCR output files and processed sections
+outputs/
+# User uploaded files
+uploads/
+# Python version management
+.python-version
+
+# ──── OS Files ────
+Thumbs.db
+.directory

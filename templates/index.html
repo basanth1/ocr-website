@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OCR Pipeline Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/styles.css"/>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <span class="logo-text">OCR<em>Pipeline</em></span>
+  </div>
+  <span class="badge" id="server-badge">● connecting…</span>
+</header>
+
+<main>
+
+  <!-- ══ TABS ══ -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" id="tab-ocr"     onclick="switchTab('ocr')">
+      <span>🔍</span> OCR Extraction
+    </button>
+    <button class="tab-btn"        id="tab-section" onclick="switchTab('section')">
+      <span>📑</span> Section Builder
+    </button>
+  </div>
+
+  <!-- ══════════════  TAB 1 — OCR  ══════════════ -->
+  <div class="tab-panel active" id="panel-ocr">
+
+    <div class="card">
+      <div class="card-title">Upload PDF</div>
+      <div class="dropzone" id="dz-pdf"
+           ondragover="dzOver(event,'dz-pdf')" ondragleave="dzLeave('dz-pdf')"
+           ondrop="dzDrop(event,'dz-pdf',handlePdfDrop)">
+        <input type="file" accept=".pdf" id="pdf-input" onchange="onPdfChange(event)"/>
+        <span class="dz-icon">📄</span>
+        <div class="dz-label">Drop your PDF here</div>
+        <div class="dz-sub">or click to browse — PDF only</div>
+      </div>
+      <div class="file-chip" id="pdf-chip">
+        <span class="chip-name" id="pdf-chip-name"></span>
+        <span class="chip-size" id="pdf-chip-size"></span>
+        <button class="chip-remove" onclick="clearPdf()">✕</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Settings</div>
+      <div class="form-grid">
+        <div class="fg">
+          <label>DPI</label>
+          <select id="ocr-dpi">
+            <option value="150">150 — fast</option>
+            <option value="200">200 — balanced</option>
+            <option value="300" selected>300 — recommended</option>
+            <option value="400">400 — high quality</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Language</label>
+          <select id="ocr-lang">
+            <option value="en" selected>English</option>
+            <option value="ch">Chinese</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="ja">Japanese</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Y-axis line grouping (px)</label>
+          <input type="number" id="ocr-y" value="10" min="1" max="50"/>
+        </div>
+        <div class="fg">
+          <label>Output filename prefix</label>
+          <input type="text" id="ocr-prefix" placeholder="my_document"/>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <div><div class="tl">Angle correction</div><div class="td">Auto-rotate skewed text</div></div>
+        <label class="sw"><input type="checkbox" id="ocr-angle" checked/><span class="sl"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Horizontal table detection</div><div class="td">Detect landscape tables</div></div>
+        <label class="sw"><input type="checkbox" id="ocr-horiz" checked/><span class="sl"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="tl">Table extraction</div><div class="td">Parse tables via PPStructure</div></div>
+        <label class="sw"><input type="checkbox" id="ocr-tables" checked/><span class="sl"></span></label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="ocr-run-btn" disabled onclick="runOCR()">▶ Run OCR</button>
+      <button class="btn btn-ghost"   onclick="resetOCR()">Reset</button>
+    </div>
+
+    <div class="progress-wrap" id="ocr-progress">
+      <div class="prog-header">
+        <span id="ocr-prog-label">Processing…</span>
+        <span id="ocr-prog-pct" class="pct">0%</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="ocr-prog-fill"></div></div>
+      <div class="log-box" id="ocr-log"></div>
+    </div>
+
+    <div class="result-panel" id="ocr-result">
+      <div class="result-head">
+        <div>
+          <div class="result-title">Extraction Complete</div>
+          <div class="result-meta" id="ocr-result-meta"></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><span id="s-pages">—</span><em>Pages</em></div>
+          <div class="stat"><span id="s-tables">—</span><em>Tables</em></div>
+          <div class="stat"><span id="s-lines">—</span><em>Lines</em></div>
+        </div>
+      </div>
+      <div class="result-preview" id="ocr-preview"></div>
+      <div class="result-foot">
+        <button class="btn btn-primary btn-sm" id="ocr-dl-btn" onclick="downloadOcr()">⬇ Download JSON</button>
+        <button class="btn btn-accent  btn-sm" onclick="sendToSection()">→ Send to Section Builder</button>
+      </div>
+    </div>
+
+  </div><!-- /panel-ocr -->
+
+
+  <!-- ══════════════  TAB 2 — SECTION BUILDER  ══════════════ -->
+  <div class="tab-panel" id="panel-section">
+
+    <div class="card">
+      <div class="card-title">OCR JSON Source</div>
+
+      <!-- Source toggle -->
+      <div class="seg-ctrl" style="margin-bottom:16px;">
+        <button class="seg-btn active" id="src-upload-btn" onclick="setSrc('upload')">📂 Upload file</button>
+        <button class="seg-btn"        id="src-pipe-btn"   onclick="setSrc('pipe')">⚡ From OCR tab</button>
+      </div>
+
+      <div id="src-upload-area">
+        <div class="dropzone" id="dz-json"
+             ondragover="dzOver(event,'dz-json')" ondragleave="dzLeave('dz-json')"
+             ondrop="dzDrop(event,'dz-json',handleJsonDrop)">
+          <input type="file" accept=".json" id="json-input" onchange="onJsonChange(event)"/>
+          <span class="dz-icon">📂</span>
+          <div class="dz-label">Drop OCR JSON here</div>
+          <div class="dz-sub">or click to browse — JSON only</div>
+        </div>
+        <div class="file-chip" id="json-chip">
+          <span class="chip-name" id="json-chip-name"></span>
+          <span class="chip-size" id="json-chip-size"></span>
+          <button class="chip-remove" onclick="clearJson()">✕</button>
+        </div>
+      </div>
+
+      <div id="src-pipe-area" style="display:none;">
+        <div class="info-box" id="pipe-status">No data piped yet. Run OCR first and press "Send to Section Builder".</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Extraction Method</div>
+      <div class="seg-ctrl" style="margin-bottom:20px;">
+        <button class="seg-btn active" id="meth-regex" onclick="setMethod('regex')">⚙ Regex Only</button>
+        <button class="seg-btn"        id="meth-llm"   onclick="setMethod('llm')">🤖 LLM + Regex</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="fg" style="grid-column:1/-1;">
+          <label>Custom section regex pattern</label>
+          <input type="text" id="sec-pattern"
+            value="\b\d+(?:\.\d+)+|\b\d+\.|\b[A-Z]\."
+            placeholder="\b\d+(?:\.\d+)+|\b\d+\. …"/>
+        </div>
+      </div>
+
+      <div id="llm-options" style="display:none;">
+        <div class="divider"></div>
+        <div class="form-grid">
+          <div class="fg">
+            <label>Groq API Key</label>
+            <input type="password" id="groq-key" placeholder="gsk_…"/>
+          </div>
+          <div class="fg">
+            <label>Model</label>
+            <select id="groq-model">
+              <option value="llama-3.3-70b-versatile" selected>LLaMA 3.3 70B Versatile</option>
+              <option value="llama-3.1-8b-instant">LLaMA 3.1 8B Instant</option>
+              <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>TOC last page number</label>
+            <input type="number" id="toc-end" value="3" min="1"/>
+          </div>
+          <div class="fg">
+            <label>Temperature</label>
+            <input type="number" id="llm-temp" value="0" min="0" max="1" step="0.1"/>
+          </div>
+          <div class="fg" style="grid-column:1/-1;">
+            <label>Extra prompt instructions (optional)</label>
+            <textarea id="llm-extra" placeholder="e.g. Also include appendix headings…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Output Format</div>
+      <div class="seg-ctrl">
+        <button class="seg-btn active" id="fmt-json" onclick="setFmt('json')">{ } JSON</button>
+        <button class="seg-btn"        id="fmt-md"   onclick="setFmt('md')">## Markdown</button>
+        <button class="seg-btn"        id="fmt-both" onclick="setFmt('both')">⊕ Both</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="sec-run-btn" disabled onclick="runSections()">▶ Build Sections</button>
+      <button class="btn btn-ghost"   onclick="resetSection()">Reset</button>
+    </div>
+
+    <div class="progress-wrap" id="sec-progress">
+      <div class="prog-header">
+        <span id="sec-prog-label">Building…</span>
+        <span id="sec-prog-pct" class="pct">0%</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="sec-prog-fill"></div></div>
+      <div class="log-box" id="sec-log"></div>
+    </div>
+
+    <div class="result-panel" id="sec-result">
+      <div class="result-head">
+        <div>
+          <div class="result-title">Sections Built</div>
+          <div class="result-meta" id="sec-result-meta"></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><span id="ss-count">—</span><em>Sections</em></div>
+          <div class="stat"><span id="ss-matched">—</span><em>Matched</em></div>
+          <div class="stat"><span id="ss-tables">—</span><em>Tables</em></div>
+        </div>
+      </div>
+
+      <div style="padding:0 24px;">
+        <div class="card-title" style="padding-top:18px; margin-bottom:12px;">Section Tree</div>
+        <ul class="sec-tree" id="sec-tree"></ul>
+      </div>
+
+      <div style="padding:0 24px 16px;" id="sec-previews"></div>
+
+      <div class="result-foot" id="sec-dl-row"></div>
+    </div>
+
+  </div><!-- /panel-section -->
+
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
