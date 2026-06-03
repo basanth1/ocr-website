@@ -17,6 +17,7 @@ shapely==2.0.3
 tqdm==4.66.4
 setuptools
 httpx==0.27.2
+gunicorn
 # ocr_pipeline_studio/
 # ├── run.py                  ← Start the server (python run.py)
 # ├── requirements.txt
