@@ -24,6 +24,11 @@ python-dotenv==1.0.1
 tqdm==4.66.4
 setuptools
 groq==0.11.0
+
+# Web server
+gunicorn==21.2.0
+
+
 # ocr_pipeline_studio/
 # ├── run.py                  ← Start the server (python run.py)
 # ├── requirements.txt
